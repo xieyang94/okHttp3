@@ -1,0 +1,92 @@
+apply plugin: 'com.android.application'
+
+def getMyStoreFile(){
+    if("true".equals(IS_JENKINS)){
+        return file("使用Jenkins打包时的证书路径")
+    }else{
+        return file("E:/SDChain/sdchain/keystore/sdchain.jks")
+    }
+}
+
+android {
+    compileSdkVersion 28
+    signingConfigs {
+        release {
+            keyAlias 'sdchain'
+            keyPassword 'sdchain'
+            storeFile getMyStoreFile()
+            storePassword 'sdchain'
+        }
+    }
+    defaultConfig {
+        applicationId "xiey94.com.okhttp3"
+        minSdkVersion 15
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        flavorDimensions "versionCode"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        debug{
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    productFlavors {
+        beta {
+            applicationId applicationId
+            resValue "string", "AppName", "okHttp3"
+//            buildConfigField("String", "BASE_URL", rootProject.ext.beta.BASE_URL)
+        }
+        dev {
+            applicationId "xiey94.com.okhttp3"
+            resValue "string", "AppName", "okHttp3-Dev"
+//            buildConfigField("String", "BASE_URL", rootProject.ext.dev.BASE_URL)
+        }
+    }
+
+    android.applicationVariants.all { variant ->
+        if (variant.buildType.signingConfig.getName() == android.signingConfigs.release.getName()) {
+            variant.outputs.all { output ->
+                outputFileName = productFlavors.name[0] + "_okhttp3" + "_" + buildType.name + "_" + defaultConfig.versionName + ".apk"
+            }
+        }
+    }
+
+    //Filter
+    android.variantFilter { variant ->
+        def name = variant.buildType.name
+        if (name == 'release') {
+            variant.getFlavors().each() { flavor ->
+                if (flavor.name != 'beta') {
+                    variant.setIgnore(true)
+                }
+            }
+        } else if (name == 'debug') {
+            variant.getFlavors().each() { flavor ->
+                if (flavor.name == 'beta') {
+                    variant.setIgnore(true)
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+
+    implementation 'com.squareup.okhttp3:okhttp:3.11.0'
+}
